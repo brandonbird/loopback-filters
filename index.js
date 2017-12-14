@@ -135,6 +135,18 @@ function test(example, value) {
       return false;
     }
 
+    if (example.nin) {
+      if (!Array.isArray(example.nin))
+        throw TypeError('Invalid nin query, you must pass an array to nin query.');
+      if (example.nin.length === 0) return true; // not in [] should be always true;
+      for (var j = 0; j < example.nin.length; j++) {
+        if (example.nin[j] == value) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     if ('neq' in example) {
       return compare(example.neq, value) !== 0;
     }
@@ -144,13 +156,25 @@ function test(example, value) {
         testInEquality({lte: example.between[1]}, value));
     }
 
+    if (example.regexp) {
+      var regexp;
+      if (example.regexp instanceof RegExp) {
+        regexp = example.regexp;
+      } else if (typeof example.regexp === 'string') {
+        regexp = toRegExp(example.regexp);
+      } else {
+        throw new TypeError('Invalid regular expression passed to regexp query.');
+      }
+      return regexp.test(value);
+    }
+
     if (example.like || example.nlike) {
       var like = example.like || example.nlike;
       if (typeof like === 'string') {
         like = toRegExp(like);
       }
       if (example.like) {
-        return !!new RegExp(like, 'i').test(value);
+        return new RegExp(like, 'i').test(value);
       }
 
       if (example.nlike) {
@@ -275,14 +299,13 @@ function normalizeOrder(filter) {
 
   orders.forEach(function(key, i) {
     var reverse = 1;
-    console.log(key);
     var m = key.match(/\s+(A|DE)SC$/i);
     if (m) {
       key = key.replace(/\s+(A|DE)SC/i, '');
       if (m[1].toLowerCase() === 'de') reverse = -1;
     } else {
       var Ctor = SyntaxError || Error;
-      throw new Ctor('filter.order must includ ASC of DESC');
+      throw new Ctor('filter.order must include ASC or DESC');
     }
     orders[i] = {'key': key, 'reverse': reverse};
   });

@@ -43,8 +43,57 @@ describe('filter', function() {
     });
   });
 
+  it('should allow to find using an \'and\' filter ', function(done) {
+    var andFilter = [
+      {vip: true},
+      {role: 'lead'},
+    ];
+    applyFilter({where: {and: andFilter}}, function(err, users) {
+      should.not.exist(err);
+      users.should.have.property('length', 2);
+      done();
+    });
+  });
+  it('should allow to find using regexp', function(done) {
+    applyFilter({where: {name: {regexp: /John/}}}, function(err, users) {
+      should.not.exist(err);
+      users.should.have.property('length', 1);
+      done();
+    });
+  });
+
+  it('should allow to find using an \'or\' filter ', function(done) {
+    var orFilter = [
+      {name: 'John Lennon'},
+      {name: 'Paul McCartney'},
+    ];
+    applyFilter({where: {or: orFilter}}, function(err, users) {
+      should.not.exist(err);
+      users.should.have.property('length', 2);
+      done();
+    });
+  });
+
+  it('should allow to find using nin', function(done) {
+    applyFilter({where: {name: {nin: ['George Harrison']}}}, function(err, users) {
+      should.not.exist(err);
+      users.should.have.property('length', 5);
+      done();
+    });
+  });
   // input validation
   describe.skip('invalid input', function() {
+    it(
+      'should throw if the regexp value is not string or regexp',
+      function(done) {
+        applyFilter({where: {name: {regexp: 123}}}, function(err, users) {
+          should.exist(err);
+          should.equal(err.message, 'Invalid regular expression passed to regexp query.');
+          done();
+        });
+      }
+    );
+
     it(
       'should throw if the like value is not string or regexp',
       function(done) {
@@ -127,10 +176,10 @@ describe('filter', function() {
 
   it('should successfully extract 0 user from the db', function(done) {
     applyFilter({where: {birthday: {between: [new Date(1990, 0), Date.now()]}}},
-              function(err, users) {
-                should(users.length).be.equal(0);
-                done();
-              });
+      function(err, users) {
+        should(users.length).be.equal(0);
+        done();
+      });
   });
 
   it('should support order with multiple fields', function(done) {
@@ -143,15 +192,15 @@ describe('filter', function() {
   });
 
   it('should sort undefined values to the end when ordered DESC',
-  function(done) {
-    applyFilter({order: 'vip ASC, order DESC'}, function(err, users) {
-      should.not.exist(err);
+    function(done) {
+      applyFilter({order: 'vip ASC, order DESC'}, function(err, users) {
+        should.not.exist(err);
 
-      users[4].seq.should.be.eql(1);
-      users[5].seq.should.be.eql(0);
-      done();
+        users[4].seq.should.be.eql(1);
+        users[5].seq.should.be.eql(0);
+        done();
+      });
     });
-  });
 
   it('should throw if order has wrong direction', function(done) {
     applyFilter({order: 'seq ABC'}, function(err, users) {
